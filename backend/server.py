@@ -13,11 +13,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class TrieNode:
     def __init__(self):
         self.children = {}
         self.is_end = False
         self.freq = 0
+
 
 class TrieAutocomplete:
     def __init__(self):
@@ -49,7 +51,32 @@ class TrieAutocomplete:
         top = heapq.nlargest(k, results)
         return [phrase for freq, phrase in top]
 
+
+class HashMapAutocomplete:
+    def __init__(self):
+        self.index = {}
+
+    def insert(self, phrase, frequency=1):
+        phrase = phrase.lower()
+        for i in range(1, len(phrase) + 1):
+            prefix = phrase[:i]
+            if prefix not in self.index:
+                self.index[prefix] = {}
+            if phrase not in self.index[prefix]:
+                self.index[prefix][phrase] = 0
+            self.index[prefix][phrase] += frequency
+
+    def suggest(self, prefix, k=5):
+        prefix = prefix.lower()
+        if prefix not in self.index:
+            return []
+        results = self.index[prefix].items()
+        top = heapq.nlargest(k, results, key=lambda x: x[1])
+        return [phrase for phrase, freq in top]
+
+
 trie = TrieAutocomplete()
+hmap = HashMapAutocomplete()
 
 filepath = 'final_dataset.txt'
 with open(filepath, newline='', encoding='utf-8') as f:
@@ -58,11 +85,14 @@ with open(filepath, newline='', encoding='utf-8') as f:
     for row in reader:
         phrase = row['Query'].lower().strip()
         trie.insert(phrase)
+        hmap.insert(phrase)
         count += 1
         if count >= 200000:
             break
 
+
 @app.get("/suggest")
 def suggest(prefix: str, k: int = 5):
-    suggestions = trie.suggest(prefix.lower(), k)
-    return {"suggestions": suggestions}
+    trie_suggestions = trie.suggest(prefix.lower(), k)
+    map_suggestions = hmap.suggest(prefix.lower(), k)
+    return {"trie": trie_suggestions, "map": map_suggestions}
