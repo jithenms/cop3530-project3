@@ -6,6 +6,7 @@ import csv
 
 app = FastAPI()
 
+# Allows all origins for development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,6 +28,7 @@ class TrieAutocomplete:
 
     def insert(self, phrase, frequency=1):
         node = self.root
+# create child if missing, then descend
         for char in phrase:
             if char not in node.children:
                 node.children[char] = TrieNode()
@@ -40,6 +42,7 @@ class TrieAutocomplete:
         for char, child in node.children.items():
             self._dfs(child, prefix + char, results)
 
+# Find top‑k phrases in Trie matching prefix
     def suggest(self, prefix, k=5):
         node = self.root
         for char in prefix:
@@ -57,6 +60,7 @@ class HashMapAutocomplete:
         self.index = {}
 
     def insert(self, phrase, frequency=1):
+# build every prefix to speed up suggest at cost of memory
         phrase = phrase.lower()
         for i in range(1, len(phrase) + 1):
             prefix = phrase[:i]
@@ -75,6 +79,7 @@ class HashMapAutocomplete:
         return [phrase for phrase, freq in top]
 
 
+# Read up to 200k queries from TSV file for initial index build
 trie = TrieAutocomplete()
 hmap = HashMapAutocomplete()
 
