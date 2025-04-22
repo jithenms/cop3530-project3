@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from collections import defaultdict, Counter
+import time
 import heapq
 import csv
 
@@ -80,9 +80,8 @@ class HashMapAutocomplete:
 
 
 # Read up to 200k queries from TSV file for initial index build
+trie_start = time.time()
 trie = TrieAutocomplete()
-hmap = HashMapAutocomplete()
-
 filepath = 'final_dataset.txt'
 with open(filepath, newline='', encoding='utf-8') as f:
     reader = csv.DictReader(f, delimiter='\t')
@@ -90,14 +89,38 @@ with open(filepath, newline='', encoding='utf-8') as f:
     for row in reader:
         phrase = row['Query'].lower().strip()
         trie.insert(phrase)
+        count += 1
+        if count >= 200000:
+            break
+trie_end = time.time()
+
+hmap_start = time.time()
+hmap = HashMapAutocomplete()
+with open(filepath, newline='', encoding='utf-8') as f:
+    reader = csv.DictReader(f, delimiter='\t')
+    count = 0
+    for row in reader:
+        phrase = row['Query'].lower().strip()
         hmap.insert(phrase)
         count += 1
         if count >= 200000:
             break
+hmap_end = time.time()
 
+
+@app.get("/program_data")
+def data():
+    return {
+        "hashmap_build_time": hmap_end - hmap_start,
+        "trie_build_time": trie_end - trie_start
+    }
 
 @app.get("/suggest")
-def suggest(prefix: str, k: int = 5):
-    trie_suggestions = trie.suggest(prefix.lower(), k)
-    map_suggestions = hmap.suggest(prefix.lower(), k)
-    return {"trie": trie_suggestions, "map": map_suggestions}
+def suggest(prefix: str, algorithm: str, k: int = 5):
+    start = time.time()
+    if algorithm == "trie":
+        results = trie.suggest(prefix.lower(), k)
+    else:
+        results = hmap.suggest(prefix.lower(), k)
+    end = time.time()
+    return {"results": results, "elapsed_time": (end - start) * 1000}

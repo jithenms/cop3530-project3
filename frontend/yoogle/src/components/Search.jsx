@@ -1,11 +1,13 @@
+import { Field, Label, Select } from "@headlessui/react";
 import React from "react";
 import { useState, useEffect } from "react";
-import { Select } from "@headlessui/react";
 
-export default function Search(algorithm) {
+function Search(params) {
   const [q, setQ] = useState("");
+  const [algorithm, setAlgorithm] = useState("trie");
   const [suggestions, setSuggestions] = useState([]);
   const [showResults, setShowResults] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(null);
 
   useEffect(() => {
     handleSubmit();
@@ -23,10 +25,15 @@ export default function Search(algorithm) {
       return;
     }
 
-    fetch(`http://localhost:8000/suggest?prefix=${encodeURIComponent(q)}`)
+    fetch(
+      `http://localhost:8000/suggest?prefix=${encodeURIComponent(
+        q
+      )}&algorithm=${algorithm}`
+    )
       .then((res) => res.json())
       .then((data) => {
-        setSuggestions(algorithm == "Trie-based" ? data.trie : data.map);
+        setSuggestions(data.results);
+        setElapsedTime(data.elapsed_time);
         setShowResults(true);
       })
       .catch((err) => console.error(err));
@@ -34,6 +41,38 @@ export default function Search(algorithm) {
 
   return (
     <div className="relative w-full">
+      <div className="flex justify-between items-center mb-2 py-6 gap-4 px-2 text-xs text-gray-500">
+        <div>
+          <Field
+            className="w-full"
+            onChange={(e) =>
+              setAlgorithm(e.target.value === "Trie-based" ? "trie" : "hashmap")
+            }
+          >
+            <div className="flex flex-row items-center gap-2">
+            <span className="mr-1">Algorithm:</span>
+            <Select
+                name="status"
+                aria-label="Algorithm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white  text-gray-900"
+              >
+                <option value="active">Trie-based</option>
+                <option value="paused">HashMap-based</option>
+              </Select>
+            </div>
+          </Field>
+        </div>
+        <div className="flex justify-center">
+          <span className="mr-1">Processing time:</span>
+          {!elapsedTime ? (
+            <span className="text-blue-500 font-medium animate-pulse">
+              Calculating...
+            </span>
+          ) : (
+            <span className="font-medium text-green-600">{elapsedTime.toFixed(2)} ms</span>
+          )}
+        </div>
+      </div>
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative flex items-center w-full">
           <svg
@@ -115,3 +154,5 @@ export default function Search(algorithm) {
     </div>
   );
 }
+
+export default Search;
