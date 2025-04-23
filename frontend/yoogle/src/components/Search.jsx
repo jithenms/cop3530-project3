@@ -17,11 +17,14 @@ function Search(params) {
     setQ("");
     setSuggestions([]);
     setShowResults(false);
+    setElapsedTime(null);
   };
 
   const handleSubmit = () => {
     if (q.trim() === "") {
       setSuggestions([]);
+      setShowResults(false);
+      setElapsedTime(null);  
       return;
     }
 
@@ -64,9 +67,9 @@ function Search(params) {
         </div>
         <div className="flex justify-center">
           <span className="mr-1">Processing time:</span>
-          {!elapsedTime ? (
+          {elapsedTime == null ? (
             <span className="text-blue-500 font-medium animate-pulse">
-              Calculating...
+              Awaiting Input...
             </span>
           ) : (
             <span className="font-medium text-green-600">{elapsedTime.toFixed(2)} ms</span>

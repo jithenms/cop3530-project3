@@ -117,10 +117,10 @@ def data():
 
 @app.get("/suggest")
 def suggest(prefix: str, algorithm: str, k: int = 5):
-    start = time.time()
+    start = time.perf_counter()
     if algorithm == "trie":
         results = trie.suggest(prefix.lower(), k)
     else:
         results = hmap.suggest(prefix.lower(), k)
-    end = time.time()
-    return {"results": results, "elapsed_time": (end - start) * 1000}
+    end = time.perf_counter()
+    return {"results": results, "elapsed_time": (end - start) * 1000}  # in ms
